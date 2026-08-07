@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Todo;
-// use Illuminate\Support\Facades\DB;
+use App\Http\Requests\StoreTodoRequest;
+use App\Http\Requests\UpdateTodoRequest;
 
 class TodoController extends Controller
 {
@@ -17,34 +17,15 @@ class TodoController extends Controller
         return response()->json(
             Todo::query()->latest()->get()
         );
-
-        // $todos = DB::select('SELECT * FROM todos ORDER BY created_at DESC');
-
-        // return response()->json($todos);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreTodoRequest $request): JsonResponse
     {
 
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'is_completed' => 'boolean',
-        ]);
-
-        // DB::insert('INSERT INTO todos (title, description, completed, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', [
-        //     $data['title'],
-        //     $data['description'] ?? null,
-        //     $data['completed'] ?? false,
-        // ]);
-
-        // $todo = DB::select('SELECT * FROM todos WHERE id = LAST_INSERT_ID()');
-        //return response()->json($todo, 201);
-
-        $todo = Todo::create($data);
+        $todo = Todo::create($request->validated());
 
         return response()->json($todo, 201);
     }
@@ -60,17 +41,12 @@ class TodoController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Todo $todo): JsonResponse
+    public function update(UpdateTodoRequest $request, Todo $todo): JsonResponse
     {
-        $data = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'is_completed' => 'sometimes|boolean',
-        ]);
 
-        $todo->update($data);
+        $todo->update($request->validated());
 
-        return response()->json($todo);
+        return response()->json($todo->fresh());
     }
 
     /**
