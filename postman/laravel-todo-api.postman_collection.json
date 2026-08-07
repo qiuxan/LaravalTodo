@@ -1,0 +1,203 @@
+{
+  "info": {
+    "name": "Laravel Todo API",
+    "description": "Postman collection for testing the Laravel Todo CRUD API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "todo_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Todos",
+      "item": [
+        {
+          "name": "List Todos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/todos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "todos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Todo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('todo_id', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Learn Laravel\",\n  \"description\": \"Build and test a Todo API\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/todos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "todos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Show Todo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/todos/{{todo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "todos",
+                "{{todo_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Todo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Learn Laravel API\",\n  \"description\": \"Updated from Postman\",\n  \"is_completed\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/todos/{{todo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "todos",
+                "{{todo_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Todo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/todos/{{todo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "todos",
+                "{{todo_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validation Error - Empty Title",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/todos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "todos"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

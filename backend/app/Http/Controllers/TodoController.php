@@ -6,15 +6,17 @@ use Illuminate\Http\JsonResponse;
 use App\Models\Todo;
 use App\Http\Requests\StoreTodoRequest;
 use App\Http\Requests\UpdateTodoRequest;
+use App\Http\Resources\TodoResource;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TodoController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
-        return response()->json(
+        return TodoResource::collection(
             Todo::query()->latest()->get()
         );
     }
@@ -27,15 +29,17 @@ class TodoController extends Controller
 
         $todo = Todo::create($request->validated());
 
-        return response()->json($todo, 201);
+        return (new TodoResource($todo->fresh()))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Todo $todo): JsonResponse
+    public function show(Todo $todo): TodoResource
     {
-        return response()->json($todo);
+        return new TodoResource($todo);
     }
 
     /**
