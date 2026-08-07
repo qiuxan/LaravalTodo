@@ -1,0 +1,65 @@
+# macOS / OS files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.idea/
+.vscode/
+.zed/
+.nova/
+.cursor/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Composer / Laravel
+backend/vendor/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/auth.json
+backend/storage/*.key
+backend/storage/pail/
+backend/storage/logs/*.log
+backend/.phpunit.cache/
+backend/.phpunit.result.cache
+backend/.phpactor.json
+backend/public/build/
+backend/public/hot
+backend/public/storage
+backend/public/fonts-manifest.dev.json
+backend/_ide_helper.php
+backend/Homestead.json
+backend/Homestead.yaml
+
+# Laravel local database
+backend/database/*.sqlite
+backend/database/*.sqlite-*
+
+# Node / Vite
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage / build artifacts
+coverage/
+frontend/coverage/
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Codex local metadata
+.codex/
+.agents/
