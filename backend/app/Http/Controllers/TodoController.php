@@ -45,12 +45,12 @@ class TodoController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateTodoRequest $request, Todo $todo): JsonResponse
+    public function update(UpdateTodoRequest $request, Todo $todo): TodoResource
     {
 
         $todo->update($request->validated());
 
-        return response()->json($todo->fresh());
+        return new TodoResource($todo->fresh());
     }
 
     /**
