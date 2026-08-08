@@ -12,7 +12,7 @@ use App\Actions\Todos\{
     CreateTodoAction,
     DeleteTodoAction,
     ListTodosAction,
-    UpdateTodoAction
+    UpdateTodoAction,
 };
 
 class TodoController extends Controller
