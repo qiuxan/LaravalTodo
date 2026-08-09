@@ -54,6 +54,69 @@ class ImportDummyJsonTodosJobTest extends TestCase
             'error_message' => null,
         ]);
     }
+
+    public function test_job_updates_existing_dummyjson_todos_without_creating_duplicates(): void
+    {
+        Http::fake([
+            'https://dummyjson.com/todos' => Http::sequence()
+                ->push([
+                    'todos' => [
+                        [
+                            'id' => 1,
+                            'todo' => 'Original title',
+                            'completed' => false,
+                            'userId' => 10,
+                        ],
+                    ],
+                ], 200)
+                ->push([
+                    'todos' => [
+                        [
+                            'id' => 1,
+                            'todo' => 'Updated title',
+                            'completed' => true,
+                            'userId' => 10,
+                        ],
+                    ],
+                ], 200),
+        ]);
+
+        $firstImport = TodoImport::create([
+            'source' => 'dummyjson',
+            'status' => TodoImport::STATUS_PENDING,
+            'imported_count' => 0,
+        ]);
+
+        $secondImport = TodoImport::create([
+            'source' => 'dummyjson',
+            'status' => TodoImport::STATUS_PENDING,
+            'imported_count' => 0,
+        ]);
+
+        (new ImportDummyJsonTodosJob($firstImport))->handle(
+            app(ImportDummyJsonTodosAction::class)
+        );
+
+        (new ImportDummyJsonTodosJob($secondImport))->handle(
+            app(ImportDummyJsonTodosAction::class)
+        );
+
+        $this->assertDatabaseCount('todos', 1);
+
+        $this->assertDatabaseHas('todos', [
+            Todo::FIELD_SOURCE => 'dummyjson',
+            Todo::FIELD_EXTERNAL_ID => 1,
+            Todo::FIELD_TITLE => 'Updated title',
+            Todo::FIELD_IS_COMPLETED => true,
+        ]);
+
+        $this->assertDatabaseHas('todo_imports', [
+            'id' => $secondImport->id,
+            'status' => TodoImport::STATUS_COMPLETED,
+            'imported_count' => 1,
+        ]);
+    }
+
     public function test_job_marks_import_failed_when_dummyjson_fails(): void
     {
         Http::fake([
