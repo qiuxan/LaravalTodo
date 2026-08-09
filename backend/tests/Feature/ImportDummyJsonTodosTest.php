@@ -142,4 +142,27 @@ class ImportDummyJsonTodosTest extends TestCase
 
         Queue::assertPushed(ImportDummyJsonTodosJob::class);
     }
+    public function test_it_returns_import_status(): void
+    {
+        $import = TodoImport::create([
+            'source' => 'dummyjson',
+            'status' => TodoImport::STATUS_COMPLETED,
+            'imported_count' => 30,
+            'error_message' => null,
+            'started_at' => now(),
+            'finished_at' => now(),
+        ]);
+
+        $this->getJson("/api/integrations/dummy-json/todos/imports/{$import->id}")
+            ->assertOk()
+            ->assertJson([
+                'data' => [
+                    'id' => $import->id,
+                    'source' => 'dummyjson',
+                    'status' => TodoImport::STATUS_COMPLETED,
+                    'imported_count' => 30,
+                    'error_message' => null,
+                ],
+            ]);
+    }
 }
