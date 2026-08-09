@@ -5,19 +5,25 @@ namespace App\Http\Controllers;
 use App\Actions\Todos\ImportDummyJsonTodosAction;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
+use App\Models\TodoImport;
+
 
 class DummyJsonTodoImportController extends Controller
 {
-    public function __invoke(ImportDummyJsonTodosAction $action): JsonResponse
+    public function __invoke(): JsonResponse
     {
-        try {
-            return response()->json([
-                'data' => $action->handle(),
-            ]);
-        } catch (RuntimeException $exception) {
-            return response()->json([
-                'message' => $exception->getMessage(),
-            ], 502);
-        }
+        $import = TodoImport::create([
+            'source' => 'dummyjson',
+            'status' => TodoImport::STATUS_PENDING,
+            'imported_count' => 0,
+        ]);
+
+        return response()->json([
+            'data' => [
+                'id' => $import->id,
+                'source' => $import->source,
+                'status' => $import->status,
+            ],
+        ], 202);
     }
 }

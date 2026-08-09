@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Todo;
 use Tests\TestCase;
+use App\Models\TodoImport;
+use Illuminate\Support\Facades\Queue;
 
 class ImportDummyJsonTodosTest extends TestCase
 {
@@ -107,5 +109,27 @@ class ImportDummyJsonTodosTest extends TestCase
             ]);
 
         $this->assertDatabaseCount('todos', 0);
+    }
+    public function test_import_endpoint_creates_pending_import_record(): void
+    {
+        Queue::fake();
+
+        $response = $this->postJson('/api/integrations/dummy-json/todos/import');
+
+        $response
+            ->assertAccepted()
+            ->assertJson([
+                'data' => [
+                    'source' => 'dummyjson',
+                    'status' => 'pending',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('todo_imports', [
+            'source' => 'dummyjson',
+            'status' => 'pending',
+            'imported_count' => 0,
+            'error_message' => null,
+        ]);
     }
 }
