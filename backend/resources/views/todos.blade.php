@@ -122,6 +122,33 @@
             border-bottom: 1px solid #e6ebf3;
         }
 
+        .import-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 16px;
+            border-bottom: 1px solid #e6ebf3;
+            background: #fbfcff;
+        }
+
+        .import-copy {
+            display: grid;
+            gap: 4px;
+        }
+
+        .import-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 750;
+        }
+
+        .import-status {
+            margin: 0;
+            color: #5d6980;
+            font-size: 14px;
+        }
+
         .filters {
             display: inline-flex;
             gap: 4px;
@@ -248,6 +275,7 @@
             }
 
             .header,
+            .import-panel,
             .toolbar {
                 align-items: stretch;
                 flex-direction: column;
@@ -295,6 +323,14 @@
                 <button class="primary-button" id="create-button" type="submit">Add Todo</button>
             </form>
 
+            <div class="import-panel" aria-label="DummyJSON import">
+                <div class="import-copy">
+                    <p class="import-title">DummyJSON import</p>
+                    <p class="import-status" id="import-status">No import started.</p>
+                </div>
+                <button class="secondary-button" id="import-button" type="button">Import from DummyJSON</button>
+            </div>
+
             <div class="toolbar">
                 <div class="filters" aria-label="Todo filters">
                     <button class="filter-button active" type="button" data-filter="all">All</button>
@@ -311,10 +347,17 @@
 
     <script>
         const apiBase = '/api/todos';
+        const importApiBase = '/api/integrations/dummy-json/todos/import';
         const state = {
             todos: [],
             filter: 'all',
             editingId: null,
+            import: {
+                id: null,
+                status: 'idle',
+                importedCount: 0,
+                errorMessage: null,
+            },
         };
 
         const listEl = document.querySelector('#todo-list');
@@ -326,6 +369,9 @@
         const loadingState = document.querySelector('#loading-state');
         const summary = document.querySelector('#summary');
         const filterButtons = document.querySelectorAll('.filter-button');
+        const importButton = document.querySelector('#import-button');
+        const importStatus = document.querySelector('#import-status');
+        let importPollId = null;
 
         function setLoading(message) {
             loadingState.textContent = message;
@@ -375,6 +421,33 @@
             const total = state.todos.length;
             const completed = state.todos.filter((todo) => todo.is_completed).length;
             summary.textContent = `${total} total, ${completed} completed`;
+        }
+
+        function renderImportStatus() {
+            const currentImport = state.import;
+
+            if (currentImport.status === 'idle') {
+                importStatus.textContent = 'No import started.';
+                importButton.disabled = false;
+                return;
+            }
+
+            if (currentImport.status === 'pending' || currentImport.status === 'running') {
+                importStatus.textContent = `Import #${currentImport.id}: ${currentImport.status}`;
+                importButton.disabled = true;
+                return;
+            }
+
+            if (currentImport.status === 'completed') {
+                importStatus.textContent = `Import #${currentImport.id}: completed, ${currentImport.importedCount} todos processed.`;
+                importButton.disabled = false;
+                return;
+            }
+
+            if (currentImport.status === 'failed') {
+                importStatus.textContent = `Import #${currentImport.id}: failed. ${currentImport.errorMessage || ''}`;
+                importButton.disabled = false;
+            }
         }
 
         function renderTodos() {
@@ -446,6 +519,77 @@
             } catch (error) {
                 setError(error.message);
                 setLoading('Failed to load');
+            }
+        }
+
+        async function startDummyJsonImport() {
+            setError();
+            setLoading('Starting import...');
+            importButton.disabled = true;
+
+            try {
+                const importRecord = await apiRequest(importApiBase, {
+                    method: 'POST',
+                });
+
+                state.import = {
+                    id: importRecord.id,
+                    status: importRecord.status,
+                    importedCount: importRecord.imported_count || 0,
+                    errorMessage: importRecord.error_message || null,
+                };
+                renderImportStatus();
+                setLoading('Import queued');
+                startImportPolling(importRecord.id);
+            } catch (error) {
+                setError(error.message);
+                setLoading('Import failed');
+                importButton.disabled = false;
+            }
+        }
+
+        function startImportPolling(importId) {
+            if (importPollId) {
+                clearInterval(importPollId);
+            }
+
+            importPollId = setInterval(() => {
+                pollImportStatus(importId);
+            }, 1000);
+
+            pollImportStatus(importId);
+        }
+
+        async function pollImportStatus(importId) {
+            try {
+                const importRecord = await apiRequest(`${importApiBase}s/${importId}`);
+
+                state.import = {
+                    id: importRecord.id,
+                    status: importRecord.status,
+                    importedCount: importRecord.imported_count || 0,
+                    errorMessage: importRecord.error_message || null,
+                };
+                renderImportStatus();
+
+                if (importRecord.status === 'completed') {
+                    clearInterval(importPollId);
+                    importPollId = null;
+                    setLoading('Import completed');
+                    await loadTodos();
+                }
+
+                if (importRecord.status === 'failed') {
+                    clearInterval(importPollId);
+                    importPollId = null;
+                    setLoading('Import failed');
+                }
+            } catch (error) {
+                clearInterval(importPollId);
+                importPollId = null;
+                setError(error.message);
+                setLoading('Import status failed');
+                importButton.disabled = false;
             }
         }
 
@@ -583,6 +727,9 @@
             });
         });
 
+        importButton.addEventListener('click', startDummyJsonImport);
+
+        renderImportStatus();
         loadTodos();
     </script>
 </body>
