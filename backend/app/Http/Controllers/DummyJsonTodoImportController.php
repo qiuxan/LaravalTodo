@@ -6,6 +6,7 @@ use App\Actions\Todos\ImportDummyJsonTodosAction;
 use Illuminate\Http\JsonResponse;
 use RuntimeException;
 use App\Models\TodoImport;
+use App\Jobs\ImportDummyJsonTodosJob;
 
 
 class DummyJsonTodoImportController extends Controller
@@ -17,6 +18,8 @@ class DummyJsonTodoImportController extends Controller
             'status' => TodoImport::STATUS_PENDING,
             'imported_count' => 0,
         ]);
+
+        ImportDummyJsonTodosJob::dispatch($import);
 
         return response()->json([
             'data' => [

@@ -10,6 +10,7 @@ use App\Models\Todo;
 use Tests\TestCase;
 use App\Models\TodoImport;
 use Illuminate\Support\Facades\Queue;
+use App\Jobs\ImportDummyJsonTodosJob;
 
 class ImportDummyJsonTodosTest extends TestCase
 {
@@ -131,5 +132,14 @@ class ImportDummyJsonTodosTest extends TestCase
             'imported_count' => 0,
             'error_message' => null,
         ]);
+    }
+    public function test_import_endpoint_dispatches_import_job(): void
+    {
+        Queue::fake();
+
+        $this->postJson('/api/integrations/dummy-json/todos/import')
+            ->assertAccepted();
+
+        Queue::assertPushed(ImportDummyJsonTodosJob::class);
     }
 }
