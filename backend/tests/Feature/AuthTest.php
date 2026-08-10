@@ -66,4 +66,32 @@ class AuthTest extends TestCase
                 ],
             ]);
     }
+
+    public function test_authenticated_user_can_get_me(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'taylor@example.com',
+        ]);
+
+        $token = $user->createToken('api-token');
+
+        $this->withHeader('Authorization', 'Bearer ' . $token->plainTextToken)
+            ->getJson('/api/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.email', 'taylor@example.com');
+    }
+
+    public function test_authenticated_user_can_logout_current_token(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('api-token');
+
+        $this->withHeader('Authorization', 'Bearer ' . $token->plainTextToken)
+            ->postJson('/api/auth/logout')
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'id' => $token->accessToken->id,
+        ]);
+    }
 }

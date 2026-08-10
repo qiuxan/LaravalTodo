@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
@@ -51,5 +52,25 @@ class AuthController extends Controller
                 'token' => $token,
             ],
         ]);
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ]);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json(null, 204);
     }
 }
