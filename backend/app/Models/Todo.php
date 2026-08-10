@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Todo extends Model
 {
@@ -14,6 +15,7 @@ class Todo extends Model
     public const FIELD_TITLE = 'title';
     public const FIELD_DESCRIPTION = 'description';
     public const FIELD_IS_COMPLETED = 'is_completed';
+    public const FIELD_USER_ID = 'user_id';
 
     protected $fillable = [
         self::FIELD_SOURCE,
@@ -21,6 +23,7 @@ class Todo extends Model
         self::FIELD_TITLE,
         self::FIELD_DESCRIPTION,
         self::FIELD_IS_COMPLETED,
+        self::FIELD_USER_ID,
     ];
 
     protected function casts(): array
@@ -28,5 +31,10 @@ class Todo extends Model
         return [
             self::FIELD_IS_COMPLETED => 'boolean',
         ];
+    }
+    
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
