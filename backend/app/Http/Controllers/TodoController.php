@@ -14,15 +14,16 @@ use App\Actions\Todos\{
     ListTodosAction,
     UpdateTodoAction,
 };
+use Illuminate\Http\Request;
 
 class TodoController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(ListTodosAction $action): AnonymousResourceCollection
+    public function index(Request $request, ListTodosAction $action): AnonymousResourceCollection
     {
-        return TodoResource::collection($action->handle());
+        return TodoResource::collection($action->handle($request->user()));
     }
 
     /**
@@ -31,7 +32,7 @@ class TodoController extends Controller
     public function store(StoreTodoRequest $request, CreateTodoAction $action): JsonResponse
     {
 
-        $todo = $action->handle($request->validated());
+        $todo = $action->handle($request->user(), $request->validated());
 
         return (new TodoResource($todo))
             ->response()

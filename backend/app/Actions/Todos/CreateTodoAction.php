@@ -2,12 +2,13 @@
 
 namespace App\Actions\Todos;
 
+use App\Models\User;
 use App\Models\Todo;
 
 class CreateTodoAction
 {
-    public function handle(array $data): Todo
+    public function handle(User $user, array $data): Todo
     {
-        return Todo::create($data)->fresh();
+        return $user->todos()->create($data);
     }
 }

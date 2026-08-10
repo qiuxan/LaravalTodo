@@ -54,4 +54,48 @@ class TodoApiTest extends TestCase
             'title' => 'Guest todo',
         ])->assertUnauthorized();
     }
+
+    public function test_user_only_sees_their_own_todos(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        Todo::create([
+            'user_id' => $user->id,
+            'title' => 'Mine',
+            'description' => null,
+            'is_completed' => false,
+        ]);
+
+        Todo::create([
+            'user_id' => $otherUser->id,
+            'title' => 'Not mine',
+            'description' => null,
+            'is_completed' => false,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/todos')
+            ->assertOk()
+            ->assertJsonFragment(['title' => 'Mine'])
+            ->assertJsonMissing(['title' => 'Not mine']);
+    }
+
+    public function test_created_todo_belongs_to_authenticated_user(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/todos', [
+                'title' => 'My new todo',
+                'description' => null,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.title', 'My new todo');
+
+        $this->assertDatabaseHas('todos', [
+            'user_id' => $user->id,
+            'title' => 'My new todo',
+        ]);
+    }
 }
