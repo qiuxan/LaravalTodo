@@ -4,6 +4,9 @@ use App\Http\Controllers\TodoController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DummyJsonTodoImportController;
 use App\Http\Controllers\DummyJsonTodoImportStatusController;
+use App\Http\Controllers\AuthController;
+
+Route::post('auth/register', [AuthController::class, 'register']);
 
 Route::apiResource('todos', TodoController::class)->only([
     'index',
