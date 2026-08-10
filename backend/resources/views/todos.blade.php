@@ -16,6 +16,10 @@
             box-sizing: border-box;
         }
 
+        [hidden] {
+            display: none !important;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
@@ -62,6 +66,76 @@
             border: 1px solid #dce3ee;
             border-radius: 8px;
             box-shadow: 0 12px 30px rgba(23, 32, 51, 0.08);
+        }
+
+        .auth-panel {
+            margin-bottom: 16px;
+            padding: 16px;
+        }
+
+        .auth-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .auth-title {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 750;
+        }
+
+        .auth-tabs {
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px;
+            border: 1px solid #d7deea;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .auth-tab {
+            border: 0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #5d6980;
+            background: transparent;
+            font-weight: 650;
+        }
+
+        .auth-tab.active {
+            color: #172033;
+            background: #ffffff;
+            box-shadow: 0 1px 5px rgba(23, 32, 51, 0.12);
+        }
+
+        .auth-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(180px, 1fr)) auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .auth-form.register-mode {
+            grid-template-columns: repeat(4, minmax(140px, 1fr)) auto;
+        }
+
+        .auth-session {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .auth-session.visible {
+            display: flex;
+        }
+
+        .auth-user {
+            color: #5d6980;
+            font-size: 14px;
         }
 
         .create-form {
@@ -274,13 +348,17 @@
                 padding: 24px 0;
             }
 
+            .auth-header,
             .header,
             .import-panel,
+            .auth-session,
             .toolbar {
                 align-items: stretch;
                 flex-direction: column;
             }
 
+            .auth-form,
+            .auth-form.register-mode,
             .create-form {
                 grid-template-columns: 1fr;
             }
@@ -309,6 +387,44 @@
             </div>
             <div class="status" id="summary">Loading todos...</div>
         </header>
+
+        <section class="panel auth-panel" aria-label="Authentication">
+            <div class="auth-header" id="auth-controls">
+                <p class="auth-title">Account</p>
+                <div class="auth-tabs" aria-label="Authentication mode">
+                    <button class="auth-tab active" type="button" data-auth-mode="login">Login</button>
+                    <button class="auth-tab" type="button" data-auth-mode="register">Register</button>
+                </div>
+            </div>
+
+            <form class="auth-form" id="auth-form">
+                <div class="field" id="auth-name-field" hidden>
+                    <label for="auth-name">Name</label>
+                    <input id="auth-name" name="name" type="text" maxlength="255" autocomplete="name">
+                </div>
+                <div class="field">
+                    <label for="auth-email">Email</label>
+                    <input id="auth-email" name="email" type="email" maxlength="255" autocomplete="email" required>
+                </div>
+                <div class="field">
+                    <label for="auth-password">Password</label>
+                    <input id="auth-password" name="password" type="password" autocomplete="current-password" required>
+                </div>
+                <div class="field" id="auth-password-confirmation-field" hidden>
+                    <label for="auth-password-confirmation">Confirm password</label>
+                    <input id="auth-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password">
+                </div>
+                <button class="primary-button" id="auth-submit-button" type="submit">Login</button>
+            </form>
+
+            <div class="auth-session" id="auth-session">
+                <div>
+                    <p class="auth-title">Signed in</p>
+                    <div class="auth-user" id="auth-user"></div>
+                </div>
+                <button class="secondary-button" id="logout-button" type="button">Logout</button>
+            </div>
+        </section>
 
         <section class="panel" aria-label="Todo application">
             <form class="create-form" id="create-form">
@@ -347,11 +463,15 @@
 
     <script>
         const apiBase = '/api/todos';
+        const authApiBase = '/api/auth';
         const importApiBase = '/api/integrations/dummy-json/todos/import';
         const state = {
             todos: [],
             filter: 'all',
             editingId: null,
+            authMode: 'login',
+            authToken: localStorage.getItem('auth_token'),
+            currentUser: null,
             import: {
                 id: null,
                 status: 'idle',
@@ -369,6 +489,19 @@
         const loadingState = document.querySelector('#loading-state');
         const summary = document.querySelector('#summary');
         const filterButtons = document.querySelectorAll('.filter-button');
+        const authControls = document.querySelector('#auth-controls');
+        const authForm = document.querySelector('#auth-form');
+        const authNameField = document.querySelector('#auth-name-field');
+        const authNameInput = document.querySelector('#auth-name');
+        const authEmailInput = document.querySelector('#auth-email');
+        const authPasswordInput = document.querySelector('#auth-password');
+        const authPasswordConfirmationField = document.querySelector('#auth-password-confirmation-field');
+        const authPasswordConfirmationInput = document.querySelector('#auth-password-confirmation');
+        const authSubmitButton = document.querySelector('#auth-submit-button');
+        const authTabs = document.querySelectorAll('.auth-tab');
+        const authSession = document.querySelector('#auth-session');
+        const authUser = document.querySelector('#auth-user');
+        const logoutButton = document.querySelector('#logout-button');
         const importButton = document.querySelector('#import-button');
         const importStatus = document.querySelector('#import-status');
         let importPollId = null;
@@ -387,6 +520,7 @@
                 headers: {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
+                    ...(state.authToken ? { Authorization: `Bearer ${state.authToken}` } : {}),
                     ...(options.headers || {}),
                 },
                 ...options,
@@ -418,9 +552,36 @@
         }
 
         function renderSummary() {
+            if (!state.authToken) {
+                summary.textContent = 'Sign in to manage todos';
+                return;
+            }
+
             const total = state.todos.length;
             const completed = state.todos.filter((todo) => todo.is_completed).length;
             summary.textContent = `${total} total, ${completed} completed`;
+        }
+
+        function renderAuth() {
+            const isAuthenticated = Boolean(state.authToken && state.currentUser);
+
+            authControls.hidden = isAuthenticated;
+            authForm.hidden = isAuthenticated;
+            authSession.classList.toggle('visible', isAuthenticated);
+
+            authTabs.forEach((button) => {
+                button.classList.toggle('active', button.dataset.authMode === state.authMode);
+            });
+
+            const isRegister = state.authMode === 'register';
+            authForm.classList.toggle('register-mode', isRegister);
+            authNameField.hidden = !isRegister;
+            authPasswordConfirmationField.hidden = !isRegister;
+            authNameInput.required = isRegister;
+            authPasswordConfirmationInput.required = isRegister;
+            authPasswordInput.autocomplete = isRegister ? 'new-password' : 'current-password';
+            authSubmitButton.textContent = isRegister ? 'Register' : 'Login';
+            authUser.textContent = state.currentUser ? `${state.currentUser.name} (${state.currentUser.email})` : '';
         }
 
         function renderImportStatus() {
@@ -509,6 +670,13 @@
         }
 
         async function loadTodos() {
+            if (!state.authToken) {
+                state.todos = [];
+                renderTodos();
+                setLoading('Sign in required');
+                return;
+            }
+
             setError();
             setLoading('Loading...');
 
@@ -519,6 +687,86 @@
             } catch (error) {
                 setError(error.message);
                 setLoading('Failed to load');
+            }
+        }
+
+        async function loadCurrentUser() {
+            if (!state.authToken) {
+                renderAuth();
+                await loadTodos();
+                return;
+            }
+
+            try {
+                state.currentUser = await apiRequest(`${authApiBase}/me`);
+                renderAuth();
+                await loadTodos();
+            } catch (error) {
+                localStorage.removeItem('auth_token');
+                state.authToken = null;
+                state.currentUser = null;
+                renderAuth();
+                await loadTodos();
+            }
+        }
+
+        async function submitAuthForm(event) {
+            event.preventDefault();
+            setError();
+            authSubmitButton.disabled = true;
+            setLoading(state.authMode === 'register' ? 'Registering...' : 'Logging in...');
+
+            const payload = {
+                email: authEmailInput.value.trim(),
+                password: authPasswordInput.value,
+            };
+
+            if (state.authMode === 'register') {
+                payload.name = authNameInput.value.trim();
+                payload.password_confirmation = authPasswordConfirmationInput.value;
+            }
+
+            try {
+                const data = await apiRequest(`${authApiBase}/${state.authMode}`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                });
+
+                state.authToken = data.token;
+                state.currentUser = data.user;
+                localStorage.setItem('auth_token', data.token);
+                authForm.reset();
+                renderAuth();
+                await loadTodos();
+                setLoading(state.authMode === 'register' ? 'Registered' : 'Logged in');
+            } catch (error) {
+                setError(error.message);
+                setLoading('Authentication failed');
+            } finally {
+                authSubmitButton.disabled = false;
+            }
+        }
+
+        async function logout() {
+            setError();
+            logoutButton.disabled = true;
+            setLoading('Logging out...');
+
+            try {
+                await apiRequest(`${authApiBase}/logout`, {
+                    method: 'POST',
+                });
+            } catch (error) {
+                setError(error.message);
+            } finally {
+                localStorage.removeItem('auth_token');
+                state.authToken = null;
+                state.currentUser = null;
+                state.todos = [];
+                renderAuth();
+                renderTodos();
+                setLoading('Signed out');
+                logoutButton.disabled = false;
             }
         }
 
@@ -727,10 +975,20 @@
             });
         });
 
+        authTabs.forEach((button) => {
+            button.addEventListener('click', () => {
+                state.authMode = button.dataset.authMode;
+                renderAuth();
+            });
+        });
+
+        authForm.addEventListener('submit', submitAuthForm);
+        logoutButton.addEventListener('click', logout);
         importButton.addEventListener('click', startDummyJsonImport);
 
+        renderAuth();
         renderImportStatus();
-        loadTodos();
+        loadCurrentUser();
     </script>
 </body>
 </html>
