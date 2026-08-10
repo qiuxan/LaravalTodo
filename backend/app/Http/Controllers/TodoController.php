@@ -42,8 +42,10 @@ class TodoController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Todo $todo): TodoResource
+    public function show(Request $request, Todo $todo): TodoResource
     {
+        $this->abortIfTodoDoesNotBelongToUser($todo, $request->user()->id);
+
         return new TodoResource($todo);
     }
 
@@ -52,7 +54,8 @@ class TodoController extends Controller
      */
     public function update(UpdateTodoRequest $request, Todo $todo, UpdateTodoAction $action): TodoResource
     {
-
+        $this->abortIfTodoDoesNotBelongToUser($todo, $request->user()->id);
+        
         $todo = $action->handle($todo, $request->validated());
         return new TodoResource($todo);
     }
@@ -60,9 +63,18 @@ class TodoController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Todo $todo, DeleteTodoAction $action): JsonResponse
+    public function destroy(Request $request, Todo $todo, DeleteTodoAction $action): JsonResponse
     {
+        $this->abortIfTodoDoesNotBelongToUser($todo, $request->user()->id);
+
         $action->handle($todo);
         return response()->json(null, 204);
+    }
+
+    private function abortIfTodoDoesNotBelongToUser(Todo $todo, int $userId): void
+    {
+        if ($todo->user_id !== $userId) {
+            abort(404);
+        }
     }
 }

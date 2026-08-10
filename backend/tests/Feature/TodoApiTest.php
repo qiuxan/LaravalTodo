@@ -98,4 +98,105 @@ class TodoApiTest extends TestCase
             'title' => 'My new todo',
         ]);
     }
+
+    public function test_user_cannot_show_another_users_todo(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $todo = Todo::create([
+            'user_id' => $otherUser->id,
+            'title' => 'Private todo',
+            'description' => null,
+            'is_completed' => false,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson("/api/todos/{$todo->id}")
+            ->assertNotFound();
+    }
+
+    public function test_user_cannot_update_another_users_todo(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $todo = Todo::create([
+            'user_id' => $otherUser->id,
+            'title' => 'Private todo',
+            'description' => null,
+            'is_completed' => false,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->patchJson("/api/todos/{$todo->id}", [
+                'title' => 'Hacked',
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('todos', [
+            'id' => $todo->id,
+            'title' => 'Private todo',
+        ]);
+    }
+
+    public function test_user_cannot_delete_another_users_todo(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $todo = Todo::create([
+            'user_id' => $otherUser->id,
+            'title' => 'Private todo',
+            'description' => null,
+            'is_completed' => false,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/todos/{$todo->id}")
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('todos', [
+            'id' => $todo->id,
+        ]);
+    }
+
+    public function test_user_can_update_their_own_todo(): void
+    {
+        $user = User::factory()->create();
+
+        $todo = Todo::create([
+            'user_id' => $user->id,
+            'title' => 'Before',
+            'description' => null,
+            'is_completed' => false,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->patchJson("/api/todos/{$todo->id}", [
+                'title' => 'After',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'After');
+    }
+
+    public function test_user_can_delete_their_own_todo(): void
+    {
+        $user = User::factory()->create();
+
+        $todo = Todo::create([
+            'user_id' => $user->id,
+            'title' => 'Delete me',
+            'description' => null,
+            'is_completed' => false,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/todos/{$todo->id}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('todos', [
+            'id' => $todo->id,
+        ]);
+    }
 }
