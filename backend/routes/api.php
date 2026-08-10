@@ -9,18 +9,19 @@ use App\Http\Controllers\AuthController;
 Route::post('auth/register', [AuthController::class, 'register']);
 Route::post('auth/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->group(function (): void {
-    Route::get('auth/me', [AuthController::class, 'me']);
-    Route::post('auth/logout', [AuthController::class, 'logout']);
-});
-
-Route::apiResource('todos', TodoController::class)->only([
-    'index',
-    'store',
-    'show',
-    'update',
-    'destroy',
-]);
+Route::middleware('auth:sanctum')->group(
+    function (): void {
+        Route::get('auth/me', [AuthController::class, 'me']);
+        Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::apiResource('todos', TodoController::class)->only([
+            'index',
+            'store',
+            'show',
+            'update',
+            'destroy',
+        ]);
+    }
+);
 
 Route::post(
     'integrations/dummy-json/todos/import',

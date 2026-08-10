@@ -45,4 +45,13 @@ class TodoApiTest extends TestCase
 
         $this->assertCount(2, $user->todos);
     }
+
+    public function test_guest_cannot_access_todo_routes(): void
+    {
+        $this->getJson('/api/todos')->assertUnauthorized();
+
+        $this->postJson('/api/todos', [
+            'title' => 'Guest todo',
+        ])->assertUnauthorized();
+    }
 }
