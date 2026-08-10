@@ -19,7 +19,7 @@ class AuthTest extends TestCase
         $this->assertIsString($token);
         $this->assertStringContainsString('|', $token);
     }
-    
+
     public function test_user_can_register_and_receive_token(): void
     {
         $response = $this->postJson('/api/auth/register', [
@@ -42,5 +42,28 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'taylor@example.com',
         ]);
+    }
+
+    public function test_user_can_login_and_receive_token(): void
+    {
+        User::factory()->create([
+            'email' => 'taylor@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response = $this->postJson('/api/auth/login', [
+            'email' => 'taylor@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.user.email', 'taylor@example.com')
+            ->assertJsonStructure([
+                'data' => [
+                    'user' => ['id', 'name', 'email'],
+                    'token',
+                ],
+            ]);
     }
 }
